@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import com.cloudbees.workflow.util.ServeJson;
+import net.sf.json.JSON;
+import net.sf.json.JSONObject;
+import org.jvnet.hudson.plugins.thinbackup.backup.HudsonBackup;
 import org.jvnet.hudson.plugins.thinbackup.restore.HudsonRestore;
 import org.jvnet.hudson.plugins.thinbackup.utils.Utils;
 import org.kohsuke.stapler.QueryParameter;
@@ -168,6 +172,19 @@ public class ThinBackupMgmtLink extends ManagementLink {
     plugin.save();
     LOGGER.finest("Saving backup settings done.");
     rsp.sendRedirect(res.getContextPath() + THIN_BACKUP_SUBPATH);
+  }
+
+  @ServeJson
+  public JSON doBackupNow(){
+    JSONObject status = new JSONObject();
+    ThinBackupPeriodicWork thinBackupPeriodicWork=new ThinBackupPeriodicWork();
+    try {
+      thinBackupPeriodicWork.backupNow(ThinBackupPeriodicWork.BackupType.FULL);
+      status.put("backup","success");
+    }catch (Exception e){
+      status.put("backup","failure");
+    }
+    return status;
   }
 
   public ThinBackupPluginImpl getConfiguration() {
