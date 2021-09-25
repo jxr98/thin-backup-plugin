@@ -36,6 +36,7 @@ import hudson.model.ManagementLink;
 import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
 import jenkins.util.Timer;
+//import com.cloudbees.workflow.util.ServeJson;
 
 /**
  * A backup solution for Hudson. Backs up configuration files from Hudson and its jobs.
@@ -179,4 +180,8 @@ public class ThinBackupMgmtLink extends ManagementLink {
     return Utils.getBackupsAsDates(new File(plugin.getExpandedBackupPath()));
   }
 
+  @ServeJson
+  public List<String> doAvailableRestoreList(){
+    return getAvailableBackups();
+  }
 }
