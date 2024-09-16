@@ -16,6 +16,19 @@
  */
 package org.jvnet.hudson.plugins.thinbackup;
 
+import com.cloudbees.workflow.util.ServeJson;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Extension;
+import hudson.model.ManagementLink;
+import hudson.model.TaskListener;
+import jenkins.model.Jenkins;
+import jenkins.util.Timer;
+import org.jvnet.hudson.plugins.thinbackup.restore.HudsonRestore;
+import org.jvnet.hudson.plugins.thinbackup.utils.Utils;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -25,17 +38,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import org.jvnet.hudson.plugins.thinbackup.restore.HudsonRestore;
-import org.jvnet.hudson.plugins.thinbackup.utils.Utils;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-
-import hudson.Extension;
-import hudson.model.ManagementLink;
-import hudson.model.TaskListener;
-import jenkins.model.Jenkins;
-import jenkins.util.Timer;
 
 /**
  * A backup solution for Hudson. Backs up configuration files from Hudson and its jobs.
@@ -55,7 +57,7 @@ public class ThinBackupMgmtLink extends ManagementLink {
 
   @Override
   public String getIconFileName() {
-    return "package.png";
+    return "symbol-archive-outline plugin-ionicons-api";
   }
 
   @Override
@@ -71,7 +73,7 @@ public class ThinBackupMgmtLink extends ManagementLink {
   public void doBackupManual(final StaplerRequest res, final StaplerResponse rsp) throws IOException {
     LOGGER.info("Starting manual backup.");
 
-    final Jenkins jenkins = Jenkins.getInstance();
+    final Jenkins jenkins = Jenkins.getInstanceOrNull();
     if (jenkins == null) {
       return;
     }
@@ -94,7 +96,7 @@ public class ThinBackupMgmtLink extends ManagementLink {
       @QueryParameter("restorePlugins") final String restorePlugins) throws IOException {
     LOGGER.info("Starting restore operation.");
 
-    final Jenkins jenkins = Jenkins.getInstance();
+    final Jenkins jenkins = Jenkins.getInstanceOrNull();
     if (jenkins == null) {
       return;
     }
@@ -140,8 +142,9 @@ public class ThinBackupMgmtLink extends ManagementLink {
       @QueryParameter("backupAdditionalFiles") final boolean backupAdditionalFiles,
       @QueryParameter("backupAdditionalFilesRegex") final String backupAdditionalFilesRegex,
       @QueryParameter("waitForIdle") final boolean waitForIdle,
+      @QueryParameter("backupConfigHistory") final boolean backupConfigHistory,
       @QueryParameter("forceQuietModeTimeout") final String forceQuietModeTimeout) throws IOException {
-    Jenkins jenkins = Jenkins.getInstance();
+    Jenkins jenkins = Jenkins.getInstanceOrNull();
     if (jenkins == null) {
       return;
     }
@@ -159,6 +162,7 @@ public class ThinBackupMgmtLink extends ManagementLink {
     plugin.setBackupBuildArchive(backupBuildArchive);
     plugin.setBackupBuildsToKeepOnly(backupBuildsToKeepOnly);
     plugin.setBackupUserContents(backupUserContents);
+    plugin.setBackupConfigHistory(backupConfigHistory);
     plugin.setBackupNextBuildNumber(backupNextBuildNumber);
     plugin.setBackupPluginArchives(backupPluginArchives);
     plugin.setBackupAdditionalFiles(backupAdditionalFiles);
@@ -179,4 +183,23 @@ public class ThinBackupMgmtLink extends ManagementLink {
     return Utils.getBackupsAsDates(new File(plugin.getExpandedBackupPath()));
   }
 
+
+  @ServeJson
+  public List<String> doAvailableBackups() {
+    return getAvailableBackups();
+  }
+  
+  /**
+   * Name of the category for this management link. Exists so that plugins with core dependency pre-dating the version
+   * when this was introduced can define a category.
+   * <p>
+   *
+   * @return name of the desired category, one of the enum values of Category, e.g. {@code STATUS}.
+   * @since 2.226
+   */
+  @NonNull
+  public Category getCategory() {
+    return Category.TOOLS;
+
+  }
 }
